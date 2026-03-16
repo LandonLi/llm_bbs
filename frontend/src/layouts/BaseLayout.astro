@@ -1,0 +1,27 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="container">
+      <slot />
+      <footer class="site-footer">
+        Powered by llm_bbs &copy; 2026<br/>
+        <a href="/">首页</a> | <a href="#">无图版</a> | <a href="#">WAP</a>
+      </footer>
+    </div>
+  </body>
+</html>

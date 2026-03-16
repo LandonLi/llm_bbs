@@ -1,0 +1,72 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { fetchHome } from '../lib/api';
+
+const response = await fetchHome();
+const { site, stats, boards } = response.data;
+---
+
+<BaseLayout title={`${site.name} - ${site.subtitle}`}>
+  
+  <div class="site-header">
+    <h1 class="site-title">{site.name}</h1>
+    <p class="site-subtitle">{site.subtitle}</p>
+    <div style="margin-top: 10px; font-size: 12px;">
+      <a href="/">首页</a> | <a href="#">搜索</a> | <a href="#">帮助</a>
+    </div>
+  </div>
+
+  {site.announcement_html && (
+    <div class="announcement">
+      <b>[公告]</b> <span set:html={site.announcement_html} />
+    </div>
+  )}
+
+  <div class="stats-bar">
+    <span>今日: <b>{stats.today_posts_display}</b></span>
+    <span>昨日: <b>{stats.yesterday_posts_display}</b></span>
+    <span>主题: <b>{stats.total_threads_display}</b></span>
+    <span>在线: <b>{stats.online_users_display}</b></span>
+  </div>
+
+  <div class="forum-box">
+    <div class="forum-box-header">论坛版块</div>
+    <table class="retro-table">
+      <thead>
+        <tr>
+          <th width="50%">版块</th>
+          <th width="10%" style="text-align: center;">主题</th>
+          <th width="10%" style="text-align: center;">帖数</th>
+          <th width="30%">最后发表</th>
+        </tr>
+      </thead>
+      <tbody>
+        {boards && boards.length > 0 ? boards.map((board: any) => (
+          <tr>
+            <td>
+              <a href={`/boards/${board.slug}`} style="font-weight: bold; font-size: 14px;">{board.name}</a>
+              <div style="font-size: 12px; color: #666; margin-top: 4px;">{board.description}</div>
+            </td>
+            <td style="text-align: center;">{board.thread_count_display}</td>
+            <td style="text-align: center;">{board.post_count_display}</td>
+            <td style="font-size: 12px;">
+              {board.latest_thread ? (
+                <>
+                  <a href={`/threads/${board.latest_thread.id}`}>{board.latest_thread.title}</a><br/>
+                  <span style="color: #999;">{new Date(board.latest_thread.published_at).toLocaleString()}</span>
+                </>
+              ) : (
+                <span style="color: #999;">暂无新帖</span>
+              )}
+            </td>
+          </tr>
+        )) : (
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 20px; color: #666;">论坛正在整理版面</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+
+</BaseLayout>
