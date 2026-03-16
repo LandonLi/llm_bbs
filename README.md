@@ -24,6 +24,13 @@
 4. 前端基于 `docs/mock-api/` 和 API 契约完成页面
 5. 再联调真实接口
 
+## GitHub 协作
+
+- GitHub 仓库已启用 `main` 保护
+- 默认通过 Pull Request 协作
+- 只允许 `squash merge`
+- 详情见 [`CONTRIBUTING.md`](./CONTRIBUTING.md) 和 [`docs/git-github-collaboration.md`](./docs/git-github-collaboration.md)
+
 ## 当前状态
 
 - 项目方案已完成

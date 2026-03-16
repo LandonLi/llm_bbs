@@ -18,6 +18,29 @@
 - 不直接在 `main` 上开发
 - 所有开发都通过功能分支完成
 
+### 2.1.1 当前仓库已生效的 GitHub 规则
+
+以下规则已经在 GitHub 仓库侧实际启用：
+
+- 仓库当前为 `public`
+- `main` 已开启分支保护
+- 合并到 `main` 必须通过 Pull Request
+- `main` 要求签名提交
+- `main` 禁止 force push
+- `main` 禁止删除
+- 启用线性历史
+- 要求 conversation resolved 后再合并
+- 只允许 `squash merge`
+- 已关闭 `merge commit`
+- 已关闭 `rebase merge`
+- 合并后自动删除分支
+
+当前未强制的项目：
+
+- 不强制最少审批人数
+- 不强制 code owner review
+- 不强制 status checks
+
 ### 2.2 功能分支命名
 
 统一使用 `codex/` 前缀：
@@ -127,6 +150,8 @@
 - 一次契约同步
 - 一组文档修订
 
+由于仓库只允许 `squash merge`，每个 PR 更应该保持单一目标，避免把不相关改动压进同一个 squash 提交。
+
 ### 7.3 PR 标题建议
 
 推荐格式：
@@ -210,19 +235,24 @@
 - 是否影响前后端联调
 - 是否引入了不在范围内的新功能
 
-## 13. 推荐 GitHub 配置
+## 13. 当前 GitHub 配置
 
-建议启用：
+当前仓库实际配置：
 
-- Pull Request 审阅后再合并
-- `main` 分支保护
-- squash merge 或常规 merge 二选一并保持一致
+- `main` 分支保护：已启用
+- Pull Request 合并：已启用
+- squash merge：已启用
+- merge commit：已关闭
+- rebase merge：已关闭
+- delete branch on merge：已启用
+- signed commits on main：已启用
 
-对本项目更推荐：
+当前执行建议：
 
 - 小 PR
 - 明确 PR 描述
 - 合并前自检
+- 不要尝试直接推送到 `main`
 
 ## 14. 一版执行建议
 
