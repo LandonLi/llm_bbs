@@ -1,0 +1,122 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { fetchThread, fetchThreadPosts } from '../../lib/api';
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+export function getStaticPaths() {
+  const MOCK_API_DIR = path.resolve('..', 'docs', 'mock-api');
+  const files = fs.readdirSync(MOCK_API_DIR);
+  
+  const ids = files
+    .filter(file => file.startsWith('thread-') && !file.includes('-posts-'))
+    .map(file => file.replace('thread-', '').replace('.json', ''));
+
+  return ids.map(id => ({
+    params: { id }
+  }));
+}
+
+const { id } = Astro.params;
+const threadRes = await fetchThread(id as string);
+const postsRes = await fetchThreadPosts(id as string, 1);
+
+const { board, thread } = threadRes.data;
+const { posts, pagination } = postsRes.data;
+
+// 为了方便渲染，我们将主楼视为第 1 楼 (楼主)，跟帖附加在后面
+const mainPost = {
+  id: thread.id,
+  floor_number: 1,
+  published_at: thread.published_at,
+  content_html: thread.content_html,
+  author_snapshot: thread.author_snapshot
+};
+
+const allPosts = [mainPost, ...posts];
+---
+
+<BaseLayout title={`${thread.title} - ${board.name} - 旧时论坛`}>
+
+  <div class="breadcrumb">
+    <a href="/">旧时论坛</a> &raquo; <a href={`/boards/${board.slug}`}>{board.name}</a> &raquo; <span>{thread.title}</span>
+  </div>
+
+  <div class="pagination" style="margin-top: 0;">
+    <span class="current">1</span>
+    <span>共 {pagination.totalPages} 页</span>
+  </div>
+
+  <div class="thread-container">
+    <div class="forum-box-header" style="font-size: 16px;">
+      本主题：{thread.title}
+    </div>
+
+    {allPosts.map((post: any) => (
+      <div class="post-row">
+        <!-- 左侧：用户侧栏 -->
+        <div class="post-sidebar">
+          <div style="font-weight: bold; margin-bottom: 10px; font-size: 14px; color: var(--link-color);">
+            {post.author_snapshot.display_name}
+          </div>
+          <div class="avatar-wrap">
+            <img class="avatar" src={post.author_snapshot.avatar_url} alt="头像" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=='" />
+          </div>
+          <div style="font-weight: bold; color: #cc0000; margin-bottom: 5px;">
+            {post.author_snapshot.user_group_name}
+          </div>
+          
+          <ul class="user-info-list">
+            <li>头衔: {post.author_snapshot.user_title}</li>
+            <li>版号: {post.author_snapshot.board_title}</li>
+            <li>积分: {post.author_snapshot.points_display}</li>
+            <li>发帖: {post.author_snapshot.post_count_display}</li>
+            <li>精华: {post.author_snapshot.essence_count_display}</li>
+            <li>注册: {post.author_snapshot.registered_at_display}</li>
+            <li>来自: {post.author_snapshot.location_display}</li>
+          </ul>
+
+          {post.author_snapshot.badges && post.author_snapshot.badges.length > 0 && (
+            <div class="badges">
+              {post.author_snapshot.badges.map((badge: any) => (
+                <div class="badge" title={badge.name}>
+                  <img src={badge.icon_url} alt={badge.name} onerror="this.style.display='none'" />
+                  <span>{badge.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <!-- 右侧：正文与签名档 -->
+        <div class="post-main">
+          <div class="post-header">
+            <div>
+              <span>发表于 {new Date(post.published_at).toLocaleString()}</span>
+            </div>
+            <div style="font-weight: bold;">
+              {post.floor_number === 1 ? '楼主' : `${post.floor_number} 楼`}
+            </div>
+          </div>
+          
+          <div class="post-content">
+            <Fragment set:html={post.content_html} />
+          </div>
+
+          {post.author_snapshot.signature_text && (
+            <div class="post-signature">
+              {post.author_snapshot.signature_text}
+            </div>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <div class="pagination">
+    <span class="current">1</span>
+    <span>共 {pagination.totalPages} 页</span>
+  </div>
+
+</BaseLayout>

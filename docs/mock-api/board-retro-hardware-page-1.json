@@ -1,0 +1,63 @@
+{
+  "ok": true,
+  "data": {
+    "board": {
+      "id": 2,
+      "name": "硬件数码区",
+      "slug": "retro-hardware",
+      "description": "旧电脑、CRT、拨号上网、软驱、主板、声卡相关讨论。"
+    },
+    "pinned_threads": [
+      {
+        "id": 12,
+        "title": "本版发帖风格试运行说明",
+        "reply_count": 9,
+        "view_count_display": 1201,
+        "published_at": "2026-03-01T09:00:00Z",
+        "last_replied_at": "2026-03-15T08:30:00Z",
+        "author": {
+          "display_name": "旧城南路",
+          "avatar_url": "/assets/avatars/a01.png",
+          "user_title": "老网民",
+          "user_group_name": "资深版友"
+        }
+      }
+    ],
+    "threads": [
+      {
+        "id": 88,
+        "title": "你们当年第一台电脑是什么配置",
+        "reply_count": 17,
+        "view_count_display": 809,
+        "published_at": "2026-03-16T10:00:00Z",
+        "last_replied_at": "2026-03-16T12:15:00Z",
+        "author": {
+          "display_name": "半瓶汽水",
+          "avatar_url": "/assets/avatars/a02.png",
+          "user_title": "长期灌水员",
+          "user_group_name": "正式会员"
+        }
+      },
+      {
+        "id": 91,
+        "title": "谁家里还留着那种透明翻盖的 CD 盒",
+        "reply_count": 11,
+        "view_count_display": 566,
+        "published_at": "2026-03-16T09:15:00Z",
+        "last_replied_at": "2026-03-16T11:10:00Z",
+        "author": {
+          "display_name": "玻璃球汽水盖",
+          "avatar_url": "/assets/avatars/a07.png",
+          "user_title": "茶馆熟客",
+          "user_group_name": "正式会员"
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 82,
+      "totalPages": 5
+    }
+  }
+}

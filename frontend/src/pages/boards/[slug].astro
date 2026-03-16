@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { fetchBoard } from '../../lib/api';
+
+import fs from 'node:fs';
+import path from 'node:path';
+
+export function getStaticPaths() {
+  const MOCK_API_DIR = path.resolve('..', 'docs', 'mock-api');
+  const files = fs.readdirSync(MOCK_API_DIR);
+  
+  const slugs = files
+    .filter(file => file.startsWith('board-') && file.endsWith('-page-1.json'))
+    .map(file => file.replace('board-', '').replace('-page-1.json', ''));
+
+  return slugs.map(slug => ({
+    params: { slug }
+  }));
+}
+
+const { slug } = Astro.params;
+const response = await fetchBoard(slug as string, 1);
+const { board, pinned_threads, threads, pagination } = response.data;
+---
+
+<BaseLayout title={`${board.name} - 旧时论坛`}>
+
+  <div class="breadcrumb">
+    <a href="/">旧时论坛</a> &raquo; <a href={`/boards/${board.slug}`}>{board.name}</a>
+  </div>
+
+  <div class="forum-box">
+    <div class="forum-box-content" style="background-color: #f7f9fc;">
+      <h2 style="margin: 0 0 5px 0; font-size: 16px;">{board.name}</h2>
+      <div style="font-size: 12px; color: #666;">{board.description}</div>
+    </div>
+  </div>
+
+  <div class="pagination">
+    <a href="#">&lt; 上一页</a>
+    <span class="current">1</span>
+    <a href="#">2</a>
+    <a href="#">3</a>
+    <a href="#">下一页 &gt;</a>
+    <span>共 {pagination.totalPages} 页</span>
+  </div>
+
+  <table class="retro-table" style="margin-bottom: 10px;">
+    <thead>
+      <tr>
+        <th width="5%"></th>
+        <th width="50%">标题</th>
+        <th width="15%">作者</th>
+        <th width="10%" style="text-align: center;">回复/查看</th>
+        <th width="20%">最后发帖</th>
+      </tr>
+    </thead>
+    <tbody>
+      {pinned_threads && pinned_threads.map((thread: any) => (
+        <tr style="background-color: #fdfdfd;">
+          <td style="text-align: center; color: #d00; font-weight: bold;">[置顶]</td>
+          <td>
+            <a href={`/threads/${thread.id}`} style="font-weight: bold; color: #004488;">{thread.title}</a>
+          </td>
+          <td style="font-size: 12px;">
+            <a href="#">{thread.author.display_name}</a><br/>
+            <span style="color: #999;">{thread.author.user_group_name}</span>
+          </td>
+          <td style="text-align: center; font-size: 12px;">
+            {thread.reply_count} / {thread.view_count_display}
+          </td>
+          <td style="font-size: 12px; color: #666;">
+            {new Date(thread.last_replied_at).toLocaleString()}
+          </td>
+        </tr>
+      ))}
+      {threads && threads.length > 0 ? threads.map((thread: any) => (
+        <tr>
+          <td style="text-align: center;"><img src="/assets/folder_common.gif" alt="帖" style="width:16px;height:16px;background:#ccc;" /></td>
+          <td>
+            <a href={`/threads/${thread.id}`}>{thread.title}</a>
+          </td>
+          <td style="font-size: 12px;">
+            <a href="#">{thread.author.display_name}</a><br/>
+            <span style="color: #999;">{new Date(thread.published_at).toLocaleDateString()}</span>
+          </td>
+          <td style="text-align: center; font-size: 12px;">
+            {thread.reply_count} / {thread.view_count_display}
+          </td>
+          <td style="font-size: 12px; color: #666;">
+            {new Date(thread.last_replied_at).toLocaleString()}
+          </td>
+        </tr>
+      )) : (
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 20px; color: #666;">本版还没有帖子</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+
+  <div class="pagination">
+    <a href="#">&lt; 上一页</a>
+    <span class="current">1</span>
+    <a href="#">2</a>
+    <a href="#">3</a>
+    <a href="#">下一页 &gt;</a>
+    <span>共 {pagination.totalPages} 页</span>
+  </div>
+
+</BaseLayout>
