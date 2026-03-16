@@ -1,0 +1,83 @@
+{
+  "ok": true,
+  "data": {
+    "posts": [
+      {
+        "id": 2001,
+        "floor_number": 2,
+        "published_at": "2026-03-16T10:08:00Z",
+        "content_html": "<p>我家那台严格说不算我的，是我爸单位搬回来一台别人不要的，开机得先拍两下机箱。[em:smile]</p>",
+        "author_snapshot": {
+          "display_name": "旧城南路",
+          "avatar_url": "/assets/avatars/a01.png",
+          "signature_text": "猫叫一声，电话线就掉一次",
+          "user_group_name": "资深版友",
+          "user_title": "老网民",
+          "board_title": "怀旧区住户",
+          "points_display": 6812,
+          "post_count_display": 2451,
+          "essence_count_display": 11,
+          "registered_at_display": "2003-09-12",
+          "location_display": "杭州 宽带初装",
+          "badges": [
+            {
+              "name": "老住户",
+              "icon_url": "/assets/badges/b02.png"
+            }
+          ]
+        }
+      },
+      {
+        "id": 2002,
+        "floor_number": 3,
+        "published_at": "2026-03-16T10:15:00Z",
+        "content_html": "<p>赛扬 433，当时我还觉得这数字已经很离谱了。后来才知道显卡更关键。</p>",
+        "author_snapshot": {
+          "display_name": "机箱里有风",
+          "avatar_url": "/assets/avatars/a03.png",
+          "signature_text": "风扇一响，就知道机子还想再战三年",
+          "user_group_name": "资深版友",
+          "user_title": "装机党",
+          "board_title": "硬件区老烧",
+          "points_display": 5290,
+          "post_count_display": 1730,
+          "essence_count_display": 9,
+          "registered_at_display": "2005-01-21",
+          "location_display": "南京 电信宽带",
+          "badges": []
+        }
+      },
+      {
+        "id": 2003,
+        "floor_number": 4,
+        "published_at": "2026-03-16T10:19:00Z",
+        "content_html": "<p>我比较记得的是桌面右下角永远有一堆乱七八糟的小图标，开机先等半天。[em:laugh]</p>",
+        "author_snapshot": {
+          "display_name": "汽水还冰着",
+          "avatar_url": "/assets/avatars/a04.png",
+          "signature_text": "今天也在跑题边缘试探",
+          "user_group_name": "正式会员",
+          "user_title": "茶馆熟客",
+          "board_title": "灌水茶馆常驻",
+          "points_display": 2870,
+          "post_count_display": 1202,
+          "essence_count_display": 1,
+          "registered_at_display": "2006-11-03",
+          "location_display": "苏州 校园网",
+          "badges": [
+            {
+              "name": "跑题高手",
+              "icon_url": "/assets/badges/b03.png"
+            }
+          ]
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 17,
+      "totalPages": 1
+    }
+  }
+}

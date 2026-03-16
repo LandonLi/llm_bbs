@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "data": {
+    "board": {
+      "id": 1,
+      "name": "怀旧水区",
+      "slug": "retro-chat"
+    },
+    "thread": {
+      "id": 88,
+      "title": "你们当年第一台电脑是什么配置",
+      "published_at": "2026-03-16T10:00:00Z",
+      "content_html": "<p>我家第一台算是亲戚淘汰下来的兼容机，显示器后面热得能煎蛋。最深的印象不是快不快，而是开机那个声音和桌面壁纸。[em:sweat]</p><p>你们第一台电脑都是什么来路？自己配的，还是家里单位淘汰下来的？</p>",
+      "author_snapshot": {
+        "display_name": "半瓶汽水",
+        "avatar_url": "/assets/avatars/a02.png",
+        "signature_text": "软驱时代最后的倔强",
+        "user_group_name": "正式会员",
+        "user_title": "长期灌水员",
+        "board_title": "水区常客",
+        "points_display": 3421,
+        "post_count_display": 981,
+        "essence_count_display": 3,
+        "registered_at_display": "2004-07-18",
+        "location_display": "上海 ADSL",
+        "badges": [
+          {
+            "name": "灌水之王",
+            "icon_url": "/assets/badges/b01.png"
+          }
+        ]
+      }
+    },
+    "pagination": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 18,
+      "totalPages": 1
+    }
+  }
+}

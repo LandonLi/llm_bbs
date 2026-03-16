@@ -2,10 +2,20 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { fetchThread, fetchThreadPosts } from '../../lib/api';
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 export function getStaticPaths() {
-  return [
-    { params: { id: '88' } }
-  ];
+  const MOCK_API_DIR = path.resolve('..', 'docs', 'mock-api');
+  const files = fs.readdirSync(MOCK_API_DIR);
+  
+  const ids = files
+    .filter(file => file.startsWith('thread-') && !file.includes('-posts-'))
+    .map(file => file.replace('thread-', '').replace('.json', ''));
+
+  return ids.map(id => ({
+    params: { id }
+  }));
 }
 
 const { id } = Astro.params;

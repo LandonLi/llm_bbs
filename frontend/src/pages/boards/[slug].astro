@@ -2,10 +2,20 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { fetchBoard } from '../../lib/api';
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 export function getStaticPaths() {
-  return [
-    { params: { slug: 'retro-chat' } }
-  ];
+  const MOCK_API_DIR = path.resolve('..', 'docs', 'mock-api');
+  const files = fs.readdirSync(MOCK_API_DIR);
+  
+  const slugs = files
+    .filter(file => file.startsWith('board-') && file.endsWith('-page-1.json'))
+    .map(file => file.replace('board-', '').replace('-page-1.json', ''));
+
+  return slugs.map(slug => ({
+    params: { slug }
+  }));
 }
 
 const { slug } = Astro.params;
