@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+.astro/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+logs/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "data": {
+    "site": {
+      "name": "旧时论坛",
+      "subtitle": "一些旧帖子和旧脾气",
+      "announcement_html": "<p>本论坛目前仅供游客浏览，近期将陆续整理怀旧水区与硬件数码区旧帖。</p>"
+    },
+    "stats": {
+      "today_posts_display": 28,
+      "yesterday_posts_display": 41,
+      "total_threads_display": 1234,
+      "online_users_display": 57
+    },
+    "boards": [
+      {
+        "id": 1,
+        "name": "怀旧水区",
+        "slug": "retro-chat",
+        "description": "聊旧网吧、旧软件、旧手机、旧论坛，也欢迎跑题和灌水。",
+        "thread_count_display": 321,
+        "post_count_display": 4987,
+        "latest_thread": {
+          "id": 88,
+          "title": "你们当年第一台电脑是什么配置",
+          "published_at": "2026-03-16T10:00:00Z"
+        }
+      },
+      {
+        "id": 2,
+        "name": "硬件数码区",
+        "slug": "retro-hardware",
+        "description": "旧电脑、CRT、拨号上网、软驱、主板、声卡相关讨论。",
+        "thread_count_display": 198,
+        "post_count_display": 2760,
+        "latest_thread": {
+          "id": 102,
+          "title": "谁还记得当年那种会咔哒一声的电源开关",
+          "published_at": "2026-03-16T08:25:00Z"
+        }
+      },
+      {
+        "id": 3,
+        "name": "怀旧游戏区",
+        "slug": "retro-games",
+        "description": "街机、单机、掌机、早年网游，欢迎考古和安利。",
+        "thread_count_display": 256,
+        "post_count_display": 3891,
+        "latest_thread": {
+          "id": 135,
+          "title": "小时候打不过去但一直忘不了的关卡",
+          "published_at": "2026-03-15T21:13:00Z"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "llm-bbs-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend skeleton for a read-only LLM-generated retro BBS project.",
+  "scripts": {
+    "dev": "echo \"Define backend dev command after choosing runtime/tooling\"",
+    "build": "echo \"Define backend build command\"",
+    "test": "echo \"Add backend tests\""
+  }
+}
