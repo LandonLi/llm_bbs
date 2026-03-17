@@ -283,7 +283,22 @@ function buildServer() {
   });
   const db = getDb();
   const adminApiKey = config.ADMIN_API_KEY ?? "";
-  void adminApiKey;
+
+  app.addHook("onRequest", async (request, reply) => {
+    if (!request.url.startsWith("/internal/")) {
+      return;
+    }
+    if (!adminApiKey) {
+      return;
+    }
+
+    const token = request.headers["x-admin-api-key"];
+    if (typeof token === "string" && token === adminApiKey) {
+      return;
+    }
+
+    return reply.code(401).send(fail("UNAUTHORIZED", "Invalid admin api key"));
+  });
 
   function getObjectBody(request, reply) {
     const body = request.body ?? {};
