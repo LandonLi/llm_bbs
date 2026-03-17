@@ -2,10 +2,26 @@
   "name": "llm-bbs-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "Backend skeleton for a read-only LLM-generated retro BBS project.",
+  "description": "Backend service for a read-only LLM-generated retro BBS project.",
   "scripts": {
-    "dev": "echo \"Define backend dev command after choosing runtime/tooling\"",
-    "build": "echo \"Define backend build command\"",
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "migrate": "node -e \"require('./src/lib/migrate').runMigrations()\"",
     "test": "echo \"Add backend tests\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "commander": "^14.0.1",
+    "dotenv": "^16.6.1",
+    "fastify": "^5.8.2",
+    "zod": "^3.25.76"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }
