@@ -1,4 +1,5 @@
 const Fastify = require("fastify");
+const { config } = require("./config");
 const { getDb } = require("../lib/db");
 
 const DEFAULT_SITE_META = {
@@ -154,11 +155,166 @@ function buildPagination({ page, pageSize, total }) {
   };
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function pickKnownFields(input, allowed) {
+  const picked = {};
+  for (const key of Object.keys(input)) {
+    if (allowed.has(key)) {
+      picked[key] = input[key];
+    }
+  }
+  return picked;
+}
+
+function findUnknownFields(input, allowed) {
+  return Object.keys(input).filter((key) => !allowed.has(key));
+}
+
+function normalizeBooleanToInt(input) {
+  if (input === true || input === 1 || input === "1" || input === "true") {
+    return 1;
+  }
+  if (input === false || input === 0 || input === "0" || input === "false") {
+    return 0;
+  }
+  return null;
+}
+
+function normalizeInteger(input) {
+  const n = Number(input);
+  if (!Number.isInteger(n)) {
+    return null;
+  }
+  return n;
+}
+
+function normalizeNullableInteger(input) {
+  if (input === null) {
+    return null;
+  }
+  return normalizeInteger(input);
+}
+
+function normalizeNumber(input) {
+  const n = Number(input);
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+  return n;
+}
+
+function normalizeJsonInput(value, expectedType) {
+  let parsed = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return { ok: false, message: "Invalid JSON string" };
+    }
+  }
+
+  if (expectedType === "array" && !Array.isArray(parsed)) {
+    return { ok: false, message: "Expected JSON array" };
+  }
+  if (expectedType === "object" && !isPlainObject(parsed)) {
+    return { ok: false, message: "Expected JSON object" };
+  }
+
+  return {
+    ok: true,
+    value: JSON.stringify(parsed),
+  };
+}
+
+function parseId(rawId) {
+  const id = toPositiveInt(rawId, 0);
+  if (!id) {
+    return null;
+  }
+  return id;
+}
+
+function insertRow(db, table, payload) {
+  const keys = Object.keys(payload);
+  const placeholders = keys.map(() => "?").join(", ");
+  const sql = `INSERT INTO ${table} (${keys.join(", ")}) VALUES (${placeholders})`;
+  const values = keys.map((key) => payload[key]);
+  const result = db.prepare(sql).run(...values);
+  return result.lastInsertRowid;
+}
+
+function updateRowById(db, table, id, payload) {
+  const keys = Object.keys(payload);
+  if (keys.length === 0) {
+    return 0;
+  }
+  const assignments = keys.map((key) => `${key} = ?`).join(", ");
+  const sql = `UPDATE ${table} SET ${assignments} WHERE id = ?`;
+  const values = keys.map((key) => payload[key]);
+  const result = db.prepare(sql).run(...values, id);
+  return result.changes;
+}
+
+function getRowById(db, table, id) {
+  return db.prepare(`SELECT * FROM ${table} WHERE id = ? LIMIT 1`).get(id);
+}
+
+function parseJsonColumns(row, columns) {
+  if (!row) {
+    return null;
+  }
+  const out = { ...row };
+  for (const column of columns) {
+    out[column] = parseJsonField(row[column], row[column] ?? null);
+  }
+  return out;
+}
+
+function isConstraintError(error) {
+  return typeof error?.code === "string" && error.code.startsWith("SQLITE_CONSTRAINT");
+}
+
 function buildServer() {
   const app = Fastify({
     logger: true,
   });
   const db = getDb();
+  const adminApiKey = config.ADMIN_API_KEY ?? "";
+  void adminApiKey;
+
+  function getObjectBody(request, reply) {
+    const body = request.body ?? {};
+    if (!isPlainObject(body)) {
+      reply.code(400).send(fail("INVALID_ARGUMENT", "Request body must be a JSON object"));
+      return null;
+    }
+    return body;
+  }
+
+  function rejectUnknownBodyFields(body, allowedFields, reply) {
+    const unknownFields = findUnknownFields(body, allowedFields);
+    if (unknownFields.length > 0) {
+      reply
+        .code(400)
+        .send(fail("INVALID_ARGUMENT", `Unknown fields: ${unknownFields.join(", ")}`));
+      return true;
+    }
+    return false;
+  }
+
+  function withConstraintGuard(reply, runner) {
+    try {
+      return runner();
+    } catch (error) {
+      if (isConstraintError(error)) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", error.message));
+      }
+      throw error;
+    }
+  }
 
   app.get("/health", async () => {
     return ok({
@@ -591,6 +747,1348 @@ function buildServer() {
         total: totalRow.total,
       }),
     });
+  });
+
+  app.post("/internal/boards", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+
+    const allowedFields = new Set([
+      "name",
+      "slug",
+      "description",
+      "sort_order",
+      "is_enabled",
+      "is_hidden",
+      "theme_prompt",
+      "posting_frequency",
+      "reply_density",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    if (typeof body.name !== "string" || !body.name.trim()) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "name is required"));
+    }
+    if (typeof body.slug !== "string" || !body.slug.trim()) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "slug is required"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.name = body.name.trim();
+    payload.slug = body.slug.trim();
+
+    if (Object.prototype.hasOwnProperty.call(payload, "sort_order")) {
+      const value = normalizeInteger(payload.sort_order);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "sort_order must be an integer"));
+      }
+      payload.sort_order = value;
+    }
+
+    for (const field of ["is_enabled", "is_hidden"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeBooleanToInt(payload[field]);
+        if (value === null) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be a boolean`));
+        }
+        payload[field] = value;
+      }
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "boards", payload);
+      const row = getRowById(db, "boards", id);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.patch("/internal/boards/:id", async (request, reply) => {
+    const boardId = parseId(request.params.id);
+    if (!boardId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid board id"));
+    }
+
+    if (!getRowById(db, "boards", boardId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Board not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+
+    const allowedFields = new Set([
+      "name",
+      "slug",
+      "description",
+      "sort_order",
+      "is_enabled",
+      "is_hidden",
+      "theme_prompt",
+      "posting_frequency",
+      "reply_density",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    if (Object.prototype.hasOwnProperty.call(payload, "name")) {
+      if (typeof payload.name !== "string" || !payload.name.trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "name must be a non-empty string"));
+      }
+      payload.name = payload.name.trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "slug")) {
+      if (typeof payload.slug !== "string" || !payload.slug.trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "slug must be a non-empty string"));
+      }
+      payload.slug = payload.slug.trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "sort_order")) {
+      const value = normalizeInteger(payload.sort_order);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "sort_order must be an integer"));
+      }
+      payload.sort_order = value;
+    }
+    for (const field of ["is_enabled", "is_hidden"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeBooleanToInt(payload[field]);
+        if (value === null) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be a boolean`));
+        }
+        payload[field] = value;
+      }
+    }
+
+    payload.updated_at = new Date().toISOString();
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "boards", boardId, payload);
+      const row = getRowById(db, "boards", boardId);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.post("/internal/boards/:id/enable", async (request, reply) => {
+    const boardId = parseId(request.params.id);
+    if (!boardId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid board id"));
+    }
+    const changes = updateRowById(db, "boards", boardId, {
+      is_enabled: 1,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Board not found"));
+    }
+    return reply.send(ok(getRowById(db, "boards", boardId)));
+  });
+
+  app.post("/internal/boards/:id/disable", async (request, reply) => {
+    const boardId = parseId(request.params.id);
+    if (!boardId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid board id"));
+    }
+    const changes = updateRowById(db, "boards", boardId, {
+      is_enabled: 0,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Board not found"));
+    }
+    return reply.send(ok(getRowById(db, "boards", boardId)));
+  });
+
+  app.get("/internal/boards", async () => {
+    const rows = db.prepare("SELECT * FROM boards ORDER BY sort_order ASC, id ASC").all();
+    return ok({
+      boards: rows,
+    });
+  });
+
+  app.get("/internal/boards/:id", async (request, reply) => {
+    const boardId = parseId(request.params.id);
+    if (!boardId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid board id"));
+    }
+    const row = getRowById(db, "boards", boardId);
+    if (!row) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Board not found"));
+    }
+    return ok(row);
+  });
+
+  app.post("/internal/personas", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+
+    const allowedFields = new Set([
+      "internal_name",
+      "bio_prompt",
+      "tone_style",
+      "activity_level",
+      "preferred_boards_json",
+      "interaction_preferences_json",
+      "allow_alias_switching",
+      "alias_switch_rate",
+      "favorite_emoticons_json",
+      "common_phrases_json",
+      "banned_phrases_json",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    if (typeof body.internal_name !== "string" || !body.internal_name.trim()) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "internal_name is required"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.internal_name = body.internal_name.trim();
+
+    const jsonSpecs = [
+      ["preferred_boards_json", "array"],
+      ["interaction_preferences_json", "object"],
+      ["favorite_emoticons_json", "array"],
+      ["common_phrases_json", "array"],
+      ["banned_phrases_json", "array"],
+    ];
+    for (const [field, type] of jsonSpecs) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const parsed = normalizeJsonInput(payload[field], type);
+        if (!parsed.ok) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field}: ${parsed.message}`));
+        }
+        payload[field] = parsed.value;
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(payload, "allow_alias_switching")) {
+      const value = normalizeBooleanToInt(payload.allow_alias_switching);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "allow_alias_switching must be a boolean"));
+      }
+      payload.allow_alias_switching = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "alias_switch_rate")) {
+      const value = normalizeNumber(payload.alias_switch_rate);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "alias_switch_rate must be a number"));
+      }
+      payload.alias_switch_rate = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "personas", payload);
+      const row = parseJsonColumns(getRowById(db, "personas", id), [
+        "preferred_boards_json",
+        "interaction_preferences_json",
+        "favorite_emoticons_json",
+        "common_phrases_json",
+        "banned_phrases_json",
+      ]);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.patch("/internal/personas/:id", async (request, reply) => {
+    const personaId = parseId(request.params.id);
+    if (!personaId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid persona id"));
+    }
+    if (!getRowById(db, "personas", personaId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Persona not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "internal_name",
+      "bio_prompt",
+      "tone_style",
+      "activity_level",
+      "preferred_boards_json",
+      "interaction_preferences_json",
+      "allow_alias_switching",
+      "alias_switch_rate",
+      "favorite_emoticons_json",
+      "common_phrases_json",
+      "banned_phrases_json",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    if (Object.prototype.hasOwnProperty.call(payload, "internal_name")) {
+      if (typeof payload.internal_name !== "string" || !payload.internal_name.trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "internal_name must be a non-empty string"));
+      }
+      payload.internal_name = payload.internal_name.trim();
+    }
+
+    const jsonSpecs = [
+      ["preferred_boards_json", "array"],
+      ["interaction_preferences_json", "object"],
+      ["favorite_emoticons_json", "array"],
+      ["common_phrases_json", "array"],
+      ["banned_phrases_json", "array"],
+    ];
+    for (const [field, type] of jsonSpecs) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const parsed = normalizeJsonInput(payload[field], type);
+        if (!parsed.ok) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field}: ${parsed.message}`));
+        }
+        payload[field] = parsed.value;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "allow_alias_switching")) {
+      const value = normalizeBooleanToInt(payload.allow_alias_switching);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "allow_alias_switching must be a boolean"));
+      }
+      payload.allow_alias_switching = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "alias_switch_rate")) {
+      const value = normalizeNumber(payload.alias_switch_rate);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "alias_switch_rate must be a number"));
+      }
+      payload.alias_switch_rate = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "personas", personaId, payload);
+      const row = parseJsonColumns(getRowById(db, "personas", personaId), [
+        "preferred_boards_json",
+        "interaction_preferences_json",
+        "favorite_emoticons_json",
+        "common_phrases_json",
+        "banned_phrases_json",
+      ]);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.post("/internal/personas/:id/enable", async (request, reply) => {
+    const personaId = parseId(request.params.id);
+    if (!personaId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid persona id"));
+    }
+    const changes = updateRowById(db, "personas", personaId, {
+      is_enabled: 1,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Persona not found"));
+    }
+    const row = parseJsonColumns(getRowById(db, "personas", personaId), [
+      "preferred_boards_json",
+      "interaction_preferences_json",
+      "favorite_emoticons_json",
+      "common_phrases_json",
+      "banned_phrases_json",
+    ]);
+    return reply.send(ok(row));
+  });
+
+  app.post("/internal/personas/:id/disable", async (request, reply) => {
+    const personaId = parseId(request.params.id);
+    if (!personaId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid persona id"));
+    }
+    const changes = updateRowById(db, "personas", personaId, {
+      is_enabled: 0,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Persona not found"));
+    }
+    const row = parseJsonColumns(getRowById(db, "personas", personaId), [
+      "preferred_boards_json",
+      "interaction_preferences_json",
+      "favorite_emoticons_json",
+      "common_phrases_json",
+      "banned_phrases_json",
+    ]);
+    return reply.send(ok(row));
+  });
+
+  app.get("/internal/personas", async () => {
+    const rows = db.prepare("SELECT * FROM personas ORDER BY id ASC").all();
+    return ok({
+      personas: rows.map((row) =>
+        parseJsonColumns(row, [
+          "preferred_boards_json",
+          "interaction_preferences_json",
+          "favorite_emoticons_json",
+          "common_phrases_json",
+          "banned_phrases_json",
+        ]),
+      ),
+    });
+  });
+
+  app.get("/internal/personas/:id", async (request, reply) => {
+    const personaId = parseId(request.params.id);
+    if (!personaId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid persona id"));
+    }
+    const row = parseJsonColumns(getRowById(db, "personas", personaId), [
+      "preferred_boards_json",
+      "interaction_preferences_json",
+      "favorite_emoticons_json",
+      "common_phrases_json",
+      "banned_phrases_json",
+    ]);
+    if (!row) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Persona not found"));
+    }
+    return ok(row);
+  });
+
+  app.post("/internal/identity-presets", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "persona_id",
+      "display_name",
+      "avatar_asset_id",
+      "signature_text",
+      "user_group_name",
+      "user_title",
+      "board_title_default",
+      "points_display",
+      "post_count_display",
+      "essence_count_display",
+      "registered_at_display",
+      "location_display",
+      "badge_ids_json",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    if (!Object.prototype.hasOwnProperty.call(body, "persona_id")) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "persona_id is required"));
+    }
+    if (typeof body.display_name !== "string" || !body.display_name.trim()) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "display_name is required"));
+    }
+
+    const personaId = normalizeInteger(body.persona_id);
+    if (personaId === null || personaId < 1) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "persona_id must be a positive integer"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.persona_id = personaId;
+    payload.display_name = body.display_name.trim();
+
+    if (Object.prototype.hasOwnProperty.call(payload, "avatar_asset_id")) {
+      const avatarAssetId = normalizeNullableInteger(payload.avatar_asset_id);
+      if (avatarAssetId === null && payload.avatar_asset_id !== null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "avatar_asset_id must be an integer or null"));
+      }
+      if (avatarAssetId !== null && avatarAssetId < 1) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "avatar_asset_id must be positive"));
+      }
+      payload.avatar_asset_id = avatarAssetId;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "badge_ids_json")) {
+      const parsed = normalizeJsonInput(payload.badge_ids_json, "array");
+      if (!parsed.ok) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `badge_ids_json: ${parsed.message}`));
+      }
+      payload.badge_ids_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "identity_presets", payload);
+      const row = parseJsonColumns(getRowById(db, "identity_presets", id), ["badge_ids_json"]);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.patch("/internal/identity-presets/:id", async (request, reply) => {
+    const presetId = parseId(request.params.id);
+    if (!presetId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid identity preset id"));
+    }
+    if (!getRowById(db, "identity_presets", presetId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Identity preset not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "persona_id",
+      "display_name",
+      "avatar_asset_id",
+      "signature_text",
+      "user_group_name",
+      "user_title",
+      "board_title_default",
+      "points_display",
+      "post_count_display",
+      "essence_count_display",
+      "registered_at_display",
+      "location_display",
+      "badge_ids_json",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    if (Object.prototype.hasOwnProperty.call(payload, "persona_id")) {
+      const personaId = normalizeInteger(payload.persona_id);
+      if (personaId === null || personaId < 1) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "persona_id must be a positive integer"));
+      }
+      payload.persona_id = personaId;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "display_name")) {
+      if (typeof payload.display_name !== "string" || !payload.display_name.trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "display_name must be a non-empty string"));
+      }
+      payload.display_name = payload.display_name.trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "avatar_asset_id")) {
+      const avatarAssetId = normalizeNullableInteger(payload.avatar_asset_id);
+      if (avatarAssetId === null && payload.avatar_asset_id !== null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "avatar_asset_id must be an integer or null"));
+      }
+      if (avatarAssetId !== null && avatarAssetId < 1) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "avatar_asset_id must be positive"));
+      }
+      payload.avatar_asset_id = avatarAssetId;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "badge_ids_json")) {
+      const parsed = normalizeJsonInput(payload.badge_ids_json, "array");
+      if (!parsed.ok) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `badge_ids_json: ${parsed.message}`));
+      }
+      payload.badge_ids_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "identity_presets", presetId, payload);
+      const row = parseJsonColumns(getRowById(db, "identity_presets", presetId), ["badge_ids_json"]);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.post("/internal/identity-presets/:id/enable", async (request, reply) => {
+    const presetId = parseId(request.params.id);
+    if (!presetId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid identity preset id"));
+    }
+    const changes = updateRowById(db, "identity_presets", presetId, {
+      is_enabled: 1,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Identity preset not found"));
+    }
+    const row = parseJsonColumns(getRowById(db, "identity_presets", presetId), ["badge_ids_json"]);
+    return reply.send(ok(row));
+  });
+
+  app.post("/internal/identity-presets/:id/disable", async (request, reply) => {
+    const presetId = parseId(request.params.id);
+    if (!presetId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid identity preset id"));
+    }
+    const changes = updateRowById(db, "identity_presets", presetId, {
+      is_enabled: 0,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Identity preset not found"));
+    }
+    const row = parseJsonColumns(getRowById(db, "identity_presets", presetId), ["badge_ids_json"]);
+    return reply.send(ok(row));
+  });
+
+  app.get("/internal/identity-presets", async () => {
+    const rows = db.prepare("SELECT * FROM identity_presets ORDER BY id ASC").all();
+    return ok({
+      identity_presets: rows.map((row) => parseJsonColumns(row, ["badge_ids_json"])),
+    });
+  });
+
+  app.post("/internal/persona-board-profiles", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "persona_id",
+      "board_id",
+      "preferred_identity_preset_ids_json",
+      "board_title_override",
+      "tone_offset_prompt",
+      "activity_weight",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    if (!Object.prototype.hasOwnProperty.call(body, "persona_id")) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "persona_id is required"));
+    }
+    if (!Object.prototype.hasOwnProperty.call(body, "board_id")) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "board_id is required"));
+    }
+
+    const personaId = normalizeInteger(body.persona_id);
+    const boardId = normalizeInteger(body.board_id);
+    if (personaId === null || personaId < 1 || boardId === null || boardId < 1) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "persona_id and board_id must be positive integers"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.persona_id = personaId;
+    payload.board_id = boardId;
+
+    if (Object.prototype.hasOwnProperty.call(payload, "preferred_identity_preset_ids_json")) {
+      const parsed = normalizeJsonInput(payload.preferred_identity_preset_ids_json, "array");
+      if (!parsed.ok) {
+        return reply
+          .code(400)
+          .send(fail("INVALID_ARGUMENT", `preferred_identity_preset_ids_json: ${parsed.message}`));
+      }
+      payload.preferred_identity_preset_ids_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "activity_weight")) {
+      const value = normalizeNumber(payload.activity_weight);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "activity_weight must be a number"));
+      }
+      payload.activity_weight = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "persona_board_profiles", payload);
+      const row = parseJsonColumns(getRowById(db, "persona_board_profiles", id), [
+        "preferred_identity_preset_ids_json",
+      ]);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.patch("/internal/persona-board-profiles/:id", async (request, reply) => {
+    const profileId = parseId(request.params.id);
+    if (!profileId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid persona board profile id"));
+    }
+    if (!getRowById(db, "persona_board_profiles", profileId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Persona board profile not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "persona_id",
+      "board_id",
+      "preferred_identity_preset_ids_json",
+      "board_title_override",
+      "tone_offset_prompt",
+      "activity_weight",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    for (const field of ["persona_id", "board_id"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeInteger(payload[field]);
+        if (value === null || value < 1) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be a positive integer`));
+        }
+        payload[field] = value;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "preferred_identity_preset_ids_json")) {
+      const parsed = normalizeJsonInput(payload.preferred_identity_preset_ids_json, "array");
+      if (!parsed.ok) {
+        return reply
+          .code(400)
+          .send(fail("INVALID_ARGUMENT", `preferred_identity_preset_ids_json: ${parsed.message}`));
+      }
+      payload.preferred_identity_preset_ids_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "activity_weight")) {
+      const value = normalizeNumber(payload.activity_weight);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "activity_weight must be a number"));
+      }
+      payload.activity_weight = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "persona_board_profiles", profileId, payload);
+      const row = parseJsonColumns(getRowById(db, "persona_board_profiles", profileId), [
+        "preferred_identity_preset_ids_json",
+      ]);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.get("/internal/persona-board-profiles", async () => {
+    const rows = db.prepare("SELECT * FROM persona_board_profiles ORDER BY id ASC").all();
+    return ok({
+      persona_board_profiles: rows.map((row) => parseJsonColumns(row, ["preferred_identity_preset_ids_json"])),
+    });
+  });
+
+  app.post("/internal/media-assets", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "type",
+      "name",
+      "file_path",
+      "public_url",
+      "mime_type",
+      "width",
+      "height",
+      "tags_json",
+      "source_note",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    for (const field of ["type", "name", "file_path", "public_url"]) {
+      if (typeof body[field] !== "string" || !body[field].trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} is required`));
+      }
+    }
+    const allowedTypes = new Set(["avatar", "emoticon", "badge", "icon"]);
+    if (!allowedTypes.has(body.type)) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "type must be avatar|emoticon|badge|icon"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.type = body.type;
+    payload.name = body.name.trim();
+    payload.file_path = body.file_path.trim();
+    payload.public_url = body.public_url.trim();
+
+    for (const field of ["width", "height"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeNullableInteger(payload[field]);
+        if (value === null && payload[field] !== null) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be an integer or null`));
+        }
+        if (value !== null && value < 1) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be positive`));
+        }
+        payload[field] = value;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "tags_json")) {
+      const parsed = normalizeJsonInput(payload.tags_json, "array");
+      if (!parsed.ok) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `tags_json: ${parsed.message}`));
+      }
+      payload.tags_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "media_assets", payload);
+      const row = parseJsonColumns(getRowById(db, "media_assets", id), ["tags_json"]);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.get("/internal/media-assets", async () => {
+    const rows = db.prepare("SELECT * FROM media_assets ORDER BY id ASC").all();
+    return ok({
+      media_assets: rows.map((row) => parseJsonColumns(row, ["tags_json"])),
+    });
+  });
+
+  app.patch("/internal/media-assets/:id", async (request, reply) => {
+    const assetId = parseId(request.params.id);
+    if (!assetId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid media asset id"));
+    }
+    if (!getRowById(db, "media_assets", assetId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Media asset not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "type",
+      "name",
+      "file_path",
+      "public_url",
+      "mime_type",
+      "width",
+      "height",
+      "tags_json",
+      "source_note",
+      "is_enabled",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    if (Object.prototype.hasOwnProperty.call(payload, "type")) {
+      const allowedTypes = new Set(["avatar", "emoticon", "badge", "icon"]);
+      if (!allowedTypes.has(payload.type)) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "type must be avatar|emoticon|badge|icon"));
+      }
+    }
+    for (const field of ["name", "file_path", "public_url"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        if (typeof payload[field] !== "string" || !payload[field].trim()) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be a non-empty string`));
+        }
+        payload[field] = payload[field].trim();
+      }
+    }
+    for (const field of ["width", "height"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeNullableInteger(payload[field]);
+        if (value === null && payload[field] !== null) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be an integer or null`));
+        }
+        if (value !== null && value < 1) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be positive`));
+        }
+        payload[field] = value;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "tags_json")) {
+      const parsed = normalizeJsonInput(payload.tags_json, "array");
+      if (!parsed.ok) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `tags_json: ${parsed.message}`));
+      }
+      payload.tags_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "media_assets", assetId, payload);
+      const row = parseJsonColumns(getRowById(db, "media_assets", assetId), ["tags_json"]);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.post("/internal/media-assets/:id/disable", async (request, reply) => {
+    const assetId = parseId(request.params.id);
+    if (!assetId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid media asset id"));
+    }
+    const changes = updateRowById(db, "media_assets", assetId, {
+      is_enabled: 0,
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Media asset not found"));
+    }
+    const row = parseJsonColumns(getRowById(db, "media_assets", assetId), ["tags_json"]);
+    return reply.send(ok(row));
+  });
+
+  app.post("/internal/emoticon-packs", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set(["name", "code_prefix", "description", "sort_order", "is_enabled"]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    if (typeof body.name !== "string" || !body.name.trim()) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "name is required"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.name = body.name.trim();
+    if (Object.prototype.hasOwnProperty.call(payload, "sort_order")) {
+      const value = normalizeInteger(payload.sort_order);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "sort_order must be an integer"));
+      }
+      payload.sort_order = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "emoticon_packs", payload);
+      return reply.code(201).send(ok(getRowById(db, "emoticon_packs", id)));
+    });
+  });
+
+  app.patch("/internal/emoticon-packs/:id", async (request, reply) => {
+    const packId = parseId(request.params.id);
+    if (!packId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid emoticon pack id"));
+    }
+    if (!getRowById(db, "emoticon_packs", packId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Emoticon pack not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set(["name", "code_prefix", "description", "sort_order", "is_enabled"]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    if (Object.prototype.hasOwnProperty.call(payload, "name")) {
+      if (typeof payload.name !== "string" || !payload.name.trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "name must be a non-empty string"));
+      }
+      payload.name = payload.name.trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "sort_order")) {
+      const value = normalizeInteger(payload.sort_order);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "sort_order must be an integer"));
+      }
+      payload.sort_order = value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "emoticon_packs", packId, payload);
+      return reply.send(ok(getRowById(db, "emoticon_packs", packId)));
+    });
+  });
+
+  app.post("/internal/emoticons", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set(["pack_id", "asset_id", "code", "aliases_json", "label", "is_enabled"]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    for (const field of ["pack_id", "asset_id"]) {
+      if (!Object.prototype.hasOwnProperty.call(body, field)) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} is required`));
+      }
+      const value = normalizeInteger(body[field]);
+      if (value === null || value < 1) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be a positive integer`));
+      }
+    }
+    if (typeof body.code !== "string" || !body.code.trim()) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "code is required"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.pack_id = normalizeInteger(body.pack_id);
+    payload.asset_id = normalizeInteger(body.asset_id);
+    payload.code = body.code.trim();
+
+    if (Object.prototype.hasOwnProperty.call(payload, "aliases_json")) {
+      const parsed = normalizeJsonInput(payload.aliases_json, "array");
+      if (!parsed.ok) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `aliases_json: ${parsed.message}`));
+      }
+      payload.aliases_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "emoticons", payload);
+      const row = parseJsonColumns(getRowById(db, "emoticons", id), ["aliases_json"]);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.patch("/internal/emoticons/:id", async (request, reply) => {
+    const emoticonId = parseId(request.params.id);
+    if (!emoticonId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid emoticon id"));
+    }
+    if (!getRowById(db, "emoticons", emoticonId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Emoticon not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set(["pack_id", "asset_id", "code", "aliases_json", "label", "is_enabled"]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    for (const field of ["pack_id", "asset_id"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeInteger(payload[field]);
+        if (value === null || value < 1) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be a positive integer`));
+        }
+        payload[field] = value;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "code")) {
+      if (typeof payload.code !== "string" || !payload.code.trim()) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "code must be a non-empty string"));
+      }
+      payload.code = payload.code.trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "aliases_json")) {
+      const parsed = normalizeJsonInput(payload.aliases_json, "array");
+      if (!parsed.ok) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", `aliases_json: ${parsed.message}`));
+      }
+      payload.aliases_json = parsed.value;
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "is_enabled")) {
+      const value = normalizeBooleanToInt(payload.is_enabled);
+      if (value === null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "is_enabled must be a boolean"));
+      }
+      payload.is_enabled = value;
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "emoticons", emoticonId, payload);
+      const row = parseJsonColumns(getRowById(db, "emoticons", emoticonId), ["aliases_json"]);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.get("/internal/emoticons", async () => {
+    const rows = db.prepare("SELECT * FROM emoticons ORDER BY id ASC").all();
+    return ok({
+      emoticons: rows.map((row) => parseJsonColumns(row, ["aliases_json"])),
+    });
+  });
+
+  app.post("/internal/content-policies", async (request, reply) => {
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "scope_type",
+      "scope_id",
+      "min_length",
+      "max_length",
+      "max_emoticons",
+      "allowed_markup_json",
+      "banned_topics_json",
+      "style_prompt",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+    if (typeof body.scope_type !== "string" || !body.scope_type) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_type is required"));
+    }
+    const allowedScopeTypes = new Set(["global", "board", "persona"]);
+    if (!allowedScopeTypes.has(body.scope_type)) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_type must be global|board|persona"));
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    payload.scope_type = body.scope_type;
+
+    if (Object.prototype.hasOwnProperty.call(payload, "scope_id")) {
+      const value = normalizeNullableInteger(payload.scope_id);
+      if (value === null && payload.scope_id !== null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_id must be an integer or null"));
+      }
+      if (value !== null && value < 1) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_id must be positive"));
+      }
+      payload.scope_id = value;
+    }
+    for (const field of ["min_length", "max_length", "max_emoticons"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeInteger(payload[field]);
+        if (value === null) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be an integer`));
+        }
+        payload[field] = value;
+      }
+    }
+    for (const [field, type] of [
+      ["allowed_markup_json", "array"],
+      ["banned_topics_json", "array"],
+    ]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const parsed = normalizeJsonInput(payload[field], type);
+        if (!parsed.ok) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field}: ${parsed.message}`));
+        }
+        payload[field] = parsed.value;
+      }
+    }
+
+    return withConstraintGuard(reply, () => {
+      const id = insertRow(db, "content_policies", payload);
+      const row = parseJsonColumns(getRowById(db, "content_policies", id), [
+        "allowed_markup_json",
+        "banned_topics_json",
+      ]);
+      return reply.code(201).send(ok(row));
+    });
+  });
+
+  app.patch("/internal/content-policies/:id", async (request, reply) => {
+    const policyId = parseId(request.params.id);
+    if (!policyId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid content policy id"));
+    }
+    if (!getRowById(db, "content_policies", policyId)) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Content policy not found"));
+    }
+
+    const body = getObjectBody(request, reply);
+    if (!body) {
+      return;
+    }
+    const allowedFields = new Set([
+      "scope_type",
+      "scope_id",
+      "min_length",
+      "max_length",
+      "max_emoticons",
+      "allowed_markup_json",
+      "banned_topics_json",
+      "style_prompt",
+    ]);
+    if (rejectUnknownBodyFields(body, allowedFields, reply)) {
+      return;
+    }
+
+    const payload = pickKnownFields(body, allowedFields);
+    if (Object.prototype.hasOwnProperty.call(payload, "scope_type")) {
+      const allowedScopeTypes = new Set(["global", "board", "persona"]);
+      if (!allowedScopeTypes.has(payload.scope_type)) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_type must be global|board|persona"));
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, "scope_id")) {
+      const value = normalizeNullableInteger(payload.scope_id);
+      if (value === null && payload.scope_id !== null) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_id must be an integer or null"));
+      }
+      if (value !== null && value < 1) {
+        return reply.code(400).send(fail("INVALID_ARGUMENT", "scope_id must be positive"));
+      }
+      payload.scope_id = value;
+    }
+    for (const field of ["min_length", "max_length", "max_emoticons"]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const value = normalizeInteger(payload[field]);
+        if (value === null) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field} must be an integer`));
+        }
+        payload[field] = value;
+      }
+    }
+    for (const [field, type] of [
+      ["allowed_markup_json", "array"],
+      ["banned_topics_json", "array"],
+    ]) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        const parsed = normalizeJsonInput(payload[field], type);
+        if (!parsed.ok) {
+          return reply.code(400).send(fail("INVALID_ARGUMENT", `${field}: ${parsed.message}`));
+        }
+        payload[field] = parsed.value;
+      }
+    }
+    payload.updated_at = new Date().toISOString();
+
+    return withConstraintGuard(reply, () => {
+      updateRowById(db, "content_policies", policyId, payload);
+      const row = parseJsonColumns(getRowById(db, "content_policies", policyId), [
+        "allowed_markup_json",
+        "banned_topics_json",
+      ]);
+      return reply.send(ok(row));
+    });
+  });
+
+  app.get("/internal/content-policies", async () => {
+    const rows = db.prepare("SELECT * FROM content_policies ORDER BY id ASC").all();
+    return ok({
+      content_policies: rows.map((row) => parseJsonColumns(row, ["allowed_markup_json", "banned_topics_json"])),
+    });
+  });
+
+  app.post("/internal/threads/:id/hide", async (request, reply) => {
+    const threadId = parseId(request.params.id);
+    if (!threadId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid thread id"));
+    }
+    const changes = updateRowById(db, "threads", threadId, {
+      status: "hidden",
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Thread not found"));
+    }
+    return reply.send(ok(getRowById(db, "threads", threadId)));
+  });
+
+  app.post("/internal/threads/:id/archive", async (request, reply) => {
+    const threadId = parseId(request.params.id);
+    if (!threadId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid thread id"));
+    }
+    const changes = updateRowById(db, "threads", threadId, {
+      status: "archived",
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Thread not found"));
+    }
+    return reply.send(ok(getRowById(db, "threads", threadId)));
+  });
+
+  app.post("/internal/posts/:id/hide", async (request, reply) => {
+    const postId = parseId(request.params.id);
+    if (!postId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid post id"));
+    }
+    const changes = updateRowById(db, "posts", postId, {
+      status: "hidden",
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Post not found"));
+    }
+    return reply.send(ok(getRowById(db, "posts", postId)));
+  });
+
+  app.post("/internal/posts/:id/archive", async (request, reply) => {
+    const postId = parseId(request.params.id);
+    if (!postId) {
+      return reply.code(400).send(fail("INVALID_ARGUMENT", "Invalid post id"));
+    }
+    const changes = updateRowById(db, "posts", postId, {
+      status: "archived",
+      updated_at: new Date().toISOString(),
+    });
+    if (changes === 0) {
+      return reply.code(404).send(fail("RESOURCE_NOT_FOUND", "Post not found"));
+    }
+    return reply.send(ok(getRowById(db, "posts", postId)));
   });
 
   app.setNotFoundHandler(async (request, reply) => {
