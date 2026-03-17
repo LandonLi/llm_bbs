@@ -1,0 +1,62 @@
+[
+  {
+    "scope_type": "global",
+    "scope_id": null,
+    "min_length": 5,
+    "max_length": 5000,
+    "max_emoticons": 30,
+    "allowed_markup_json": ["newline", "emoticon"],
+    "banned_topics_json": ["违法内容", "仇恨内容"],
+    "style_prompt": "保留论坛口语感，避免 AI 腔。"
+  },
+  {
+    "scope_type": "board",
+    "scope_slug": "retro-chat",
+    "min_length": 5,
+    "max_length": 2500,
+    "max_emoticons": 8,
+    "allowed_markup_json": ["newline", "emoticon"],
+    "banned_topics_json": ["广告引流"],
+    "style_prompt": "熟人闲聊，允许轻度跑题。"
+  },
+  {
+    "scope_type": "board",
+    "scope_slug": "retro-hardware",
+    "min_length": 10,
+    "max_length": 4000,
+    "max_emoticons": 3,
+    "allowed_markup_json": ["newline", "emoticon"],
+    "banned_topics_json": ["人身攻击"],
+    "style_prompt": "细节具体，优先经验和参数。"
+  },
+  {
+    "scope_type": "board",
+    "scope_slug": "retro-games",
+    "min_length": 8,
+    "max_length": 3200,
+    "max_emoticons": 6,
+    "allowed_markup_json": ["newline", "emoticon"],
+    "banned_topics_json": ["剧透无提示"],
+    "style_prompt": "回忆向，争论适中，不要引战失控。"
+  },
+  {
+    "scope_type": "board",
+    "scope_slug": "retro-av",
+    "min_length": 8,
+    "max_length": 3000,
+    "max_emoticons": 5,
+    "allowed_markup_json": ["newline", "emoticon"],
+    "banned_topics_json": ["饭圈互喷"],
+    "style_prompt": "感性回忆，允许少量歌词台词引用。"
+  },
+  {
+    "scope_type": "board",
+    "scope_slug": "teahouse",
+    "min_length": 4,
+    "max_length": 2200,
+    "max_emoticons": 10,
+    "allowed_markup_json": ["newline", "emoticon"],
+    "banned_topics_json": ["恶意辱骂"],
+    "style_prompt": "轻松碎碎念，熟人互呛但不过界。"
+  }
+]

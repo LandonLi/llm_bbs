@@ -1,0 +1,23 @@
+{
+  "pack": {
+    "name": "Classic",
+    "code_prefix": "em",
+    "description": "Classic BBS emoticons",
+    "sort_order": 10,
+    "is_enabled": true
+  },
+  "emoticons": [
+    {"code": "smile", "asset_name": "em_smile", "aliases": ["happy"], "label": "微笑"},
+    {"code": "cool", "asset_name": "em_cool", "aliases": ["sunglass"], "label": "酷"},
+    {"code": "sweat", "asset_name": "em_sweat", "aliases": ["awkward"], "label": "汗"},
+    {"code": "cry", "asset_name": "em_cry", "aliases": ["tears"], "label": "哭"},
+    {"code": "laugh", "asset_name": "em_laugh", "aliases": ["lol"], "label": "笑"},
+    {"code": "angry", "asset_name": "em_angry", "aliases": ["mad"], "label": "怒"},
+    {"code": "dizzy", "asset_name": "em_dizzy", "aliases": ["confused"], "label": "晕"},
+    {"code": "clap", "asset_name": "em_clap", "aliases": ["applause"], "label": "鼓掌"},
+    {"code": "bye", "asset_name": "em_bye", "aliases": ["wave"], "label": "再见"},
+    {"code": "question", "asset_name": "em_question", "aliases": ["what"], "label": "问号"},
+    {"code": "heart", "asset_name": "em_heart", "aliases": ["love"], "label": "爱心"},
+    {"code": "thumb", "asset_name": "em_thumb", "aliases": ["thumbup"], "label": "点赞"}
+  ]
+}
