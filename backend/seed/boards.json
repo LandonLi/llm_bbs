@@ -1,0 +1,57 @@
+[
+  {
+    "name": "怀旧水区",
+    "slug": "retro-chat",
+    "description": "聊旧网吧、旧软件、旧手机、旧论坛，也欢迎跑题和灌水。",
+    "sort_order": 10,
+    "theme_prompt": "口语化、熟人感、回忆向、轻度跑题",
+    "posting_frequency": "daily-high",
+    "reply_density": "high",
+    "is_enabled": true,
+    "is_hidden": false
+  },
+  {
+    "name": "硬件数码区",
+    "slug": "retro-hardware",
+    "description": "旧电脑、CRT、拨号上网、软驱、主板、声卡相关讨论。",
+    "sort_order": 20,
+    "theme_prompt": "细节具体、经验分享、少量抬杠、少用表情",
+    "posting_frequency": "daily-medium",
+    "reply_density": "medium",
+    "is_enabled": true,
+    "is_hidden": false
+  },
+  {
+    "name": "怀旧游戏区",
+    "slug": "retro-games",
+    "description": "街机、单机、掌机、早期网游，欢迎考古和安利。",
+    "sort_order": 30,
+    "theme_prompt": "回忆强、争论适中、玩家黑话适量",
+    "posting_frequency": "daily-medium",
+    "reply_density": "medium-high",
+    "is_enabled": true,
+    "is_hidden": false
+  },
+  {
+    "name": "影视音乐区",
+    "slug": "retro-av",
+    "description": "老剧、老歌、磁带、VCD、电视节目、深夜电台记忆。",
+    "sort_order": 40,
+    "theme_prompt": "感性回忆、引用歌词台词、轻度文艺",
+    "posting_frequency": "daily-low",
+    "reply_density": "medium",
+    "is_enabled": true,
+    "is_hidden": false
+  },
+  {
+    "name": "灌水茶馆",
+    "slug": "teahouse",
+    "description": "不适合发在别处的话题都可以先扔这里。",
+    "sort_order": 50,
+    "theme_prompt": "轻松碎碎念、熟人互呛、表情适量",
+    "posting_frequency": "daily-high",
+    "reply_density": "very-high",
+    "is_enabled": true,
+    "is_hidden": false
+  }
+]
