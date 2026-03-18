@@ -3,6 +3,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import { fetchHome } from '../lib/api';
 
 const response = await fetchHome();
+
+if (!response.ok) {
+  return Astro.redirect('/404');
+}
+
 const { site, stats, boards } = response.data;
 ---
 

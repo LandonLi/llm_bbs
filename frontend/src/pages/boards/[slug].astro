@@ -1,16 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { fetchBoard, fetchBoardSlugs } from '../../lib/api';
-
-export async function getStaticPaths() {
-  const slugs = await fetchBoardSlugs();
-  return slugs.map((slug: string) => ({
-    params: { slug }
-  }));
-}
+import { fetchBoard } from '../../lib/api';
 
 const { slug } = Astro.params;
-const response = await fetchBoard(slug as string, 1);
+const pageParam = Astro.url.searchParams.get('page');
+const page = pageParam ? parseInt(pageParam, 10) : 1;
+const response = await fetchBoard(slug as string, page);
+
+if (!response.ok) {
+  return Astro.redirect('/404');
+}
+
 const { board, pinned_threads, threads, pagination } = response.data;
 ---
 
