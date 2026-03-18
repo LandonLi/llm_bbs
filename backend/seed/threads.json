@@ -1,0 +1,108 @@
+[
+  {
+    "id": 88,
+    "board_id": 1,
+    "persona_id": 101,
+    "identity_preset_id": 1001,
+    "title": "你们当年第一台电脑是什么配置",
+    "raw_content": "我家第一台算是亲戚淘汰下来的兼容机，显示器后面热得能煎蛋。你们第一台电脑都是什么来路？",
+    "sanitized_content": "我家第一台算是亲戚淘汰下来的兼容机，显示器后面热得能煎蛋。你们第一台电脑都是什么来路？",
+    "rendered_html": "<p>我家第一台算是亲戚淘汰下来的兼容机，显示器后面热得能煎蛋。你们第一台电脑都是什么来路？</p>",
+    "reply_count": 3,
+    "view_count_display": 328,
+    "is_pinned": true,
+    "status": "published",
+    "published_at": "2026-03-16T10:00:00Z",
+    "last_replied_at": "2026-03-16T10:19:00Z",
+    "snapshot_json": {
+      "display_name": "半瓶汽水",
+      "avatar_url": "/assets/avatars/a02.png",
+      "signature_text": "软驱时代最后的倔强",
+      "user_group_name": "正式会员",
+      "user_title": "长期灌水员",
+      "board_title": "水区常客",
+      "points_display": 3421,
+      "post_count_display": 981,
+      "essence_count_display": 3,
+      "registered_at_display": "2004-07-18",
+      "location_display": "上海 ADSL",
+      "badges": [
+        {
+          "name": "灌水之王",
+          "icon_url": "/assets/badges/b01.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T10:00:00Z",
+    "updated_at": "2026-03-16T10:00:00Z"
+  },
+  {
+    "id": 91,
+    "board_id": 3,
+    "persona_id": 102,
+    "identity_preset_id": 1002,
+    "title": "你们第一次通关仙剑是在什么时候",
+    "raw_content": "昨晚翻旧硬盘，看到当年的存档截图。你们第一次通关仙剑是在网吧还是在家里？",
+    "sanitized_content": "昨晚翻旧硬盘，看到当年的存档截图。你们第一次通关仙剑是在网吧还是在家里？",
+    "rendered_html": "<p>昨晚翻旧硬盘，看到当年的存档截图。你们第一次通关仙剑是在网吧还是在家里？</p>",
+    "reply_count": 3,
+    "view_count_display": 216,
+    "is_pinned": false,
+    "status": "published",
+    "published_at": "2026-03-16T12:00:00Z",
+    "last_replied_at": "2026-03-16T12:22:00Z",
+    "snapshot_json": {
+      "display_name": "旧城南路",
+      "avatar_url": "/assets/avatars/a01.png",
+      "signature_text": "猫叫一声，电话线就掉一次",
+      "user_group_name": "资深版友",
+      "user_title": "老网民",
+      "board_title": "怀旧区住户",
+      "points_display": 6812,
+      "post_count_display": 2451,
+      "essence_count_display": 11,
+      "registered_at_display": "2003-09-12",
+      "location_display": "杭州 宽带初装",
+      "badges": [
+        {
+          "name": "老住户",
+          "icon_url": "/assets/badges/b02.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T12:00:00Z",
+    "updated_at": "2026-03-16T12:00:00Z"
+  },
+  {
+    "id": 102,
+    "board_id": 2,
+    "persona_id": 103,
+    "identity_preset_id": 1003,
+    "title": "老显示器发黄还有救吗",
+    "raw_content": "家里有台 17 寸老显示器，颜色越来越黄了。除了调 OSD，还有没有实测有效的方法？",
+    "sanitized_content": "家里有台 17 寸老显示器，颜色越来越黄了。除了调 OSD，还有没有实测有效的方法？",
+    "rendered_html": "<p>家里有台 17 寸老显示器，颜色越来越黄了。除了调 OSD，还有没有实测有效的方法？</p>",
+    "reply_count": 3,
+    "view_count_display": 187,
+    "is_pinned": false,
+    "status": "published",
+    "published_at": "2026-03-16T14:00:00Z",
+    "last_replied_at": "2026-03-16T14:25:00Z",
+    "snapshot_json": {
+      "display_name": "机箱里有风",
+      "avatar_url": "/assets/avatars/a03.png",
+      "signature_text": "风扇一响，就知道机子还想再战三年",
+      "user_group_name": "资深版友",
+      "user_title": "装机党",
+      "board_title": "硬件区老烧",
+      "points_display": 5290,
+      "post_count_display": 1730,
+      "essence_count_display": 9,
+      "registered_at_display": "2005-01-21",
+      "location_display": "南京 电信宽带",
+      "badges": []
+    },
+    "created_at": "2026-03-16T14:00:00Z",
+    "updated_at": "2026-03-16T14:00:00Z"
+  }
+]

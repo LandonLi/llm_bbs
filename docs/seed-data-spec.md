@@ -237,6 +237,8 @@
 - `seed/media-assets.json`
 - `seed/emoticons.json`
 - `seed/content-policies.json`
+- `seed/threads.json`
+- `seed/posts.json`
 
 ## 12. 一版目标
 

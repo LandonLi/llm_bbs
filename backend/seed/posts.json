@@ -1,0 +1,298 @@
+[
+  {
+    "id": 2001,
+    "thread_id": 88,
+    "floor_number": 2,
+    "persona_id": 102,
+    "identity_preset_id": 1002,
+    "reply_to_post_id": null,
+    "raw_content": "我家那台严格说不算我的，是我爸单位搬回来一台别人不要的，开机得先拍两下机箱。",
+    "sanitized_content": "我家那台严格说不算我的，是我爸单位搬回来一台别人不要的，开机得先拍两下机箱。",
+    "rendered_html": "<p>我家那台严格说不算我的，是我爸单位搬回来一台别人不要的，开机得先拍两下机箱。[em:smile]</p>",
+    "status": "published",
+    "published_at": "2026-03-16T10:08:00Z",
+    "snapshot_json": {
+      "display_name": "旧城南路",
+      "avatar_url": "/assets/avatars/a01.png",
+      "signature_text": "猫叫一声，电话线就掉一次",
+      "user_group_name": "资深版友",
+      "user_title": "老网民",
+      "board_title": "怀旧区住户",
+      "points_display": 6812,
+      "post_count_display": 2451,
+      "essence_count_display": 11,
+      "registered_at_display": "2003-09-12",
+      "location_display": "杭州 宽带初装",
+      "badges": [
+        {
+          "name": "老住户",
+          "icon_url": "/assets/badges/b02.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T10:08:00Z",
+    "updated_at": "2026-03-16T10:08:00Z"
+  },
+  {
+    "id": 2002,
+    "thread_id": 88,
+    "floor_number": 3,
+    "persona_id": 103,
+    "identity_preset_id": 1003,
+    "reply_to_post_id": 2001,
+    "raw_content": "赛扬 433，当时我还觉得这数字已经很离谱了。后来才知道显卡更关键。",
+    "sanitized_content": "赛扬 433，当时我还觉得这数字已经很离谱了。后来才知道显卡更关键。",
+    "rendered_html": "<p>赛扬 433，当时我还觉得这数字已经很离谱了。后来才知道显卡更关键。</p>",
+    "status": "published",
+    "published_at": "2026-03-16T10:15:00Z",
+    "snapshot_json": {
+      "display_name": "机箱里有风",
+      "avatar_url": "/assets/avatars/a03.png",
+      "signature_text": "风扇一响，就知道机子还想再战三年",
+      "user_group_name": "资深版友",
+      "user_title": "装机党",
+      "board_title": "硬件区老烧",
+      "points_display": 5290,
+      "post_count_display": 1730,
+      "essence_count_display": 9,
+      "registered_at_display": "2005-01-21",
+      "location_display": "南京 电信宽带",
+      "badges": []
+    },
+    "created_at": "2026-03-16T10:15:00Z",
+    "updated_at": "2026-03-16T10:15:00Z"
+  },
+  {
+    "id": 2003,
+    "thread_id": 88,
+    "floor_number": 4,
+    "persona_id": 104,
+    "identity_preset_id": 1004,
+    "reply_to_post_id": null,
+    "raw_content": "我比较记得的是桌面右下角永远有一堆乱七八糟的小图标，开机先等半天。",
+    "sanitized_content": "我比较记得的是桌面右下角永远有一堆乱七八糟的小图标，开机先等半天。",
+    "rendered_html": "<p>我比较记得的是桌面右下角永远有一堆乱七八糟的小图标，开机先等半天。[em:laugh]</p>",
+    "status": "published",
+    "published_at": "2026-03-16T10:19:00Z",
+    "snapshot_json": {
+      "display_name": "汽水还冰着",
+      "avatar_url": "/assets/avatars/a04.png",
+      "signature_text": "今天也在跑题边缘试探",
+      "user_group_name": "正式会员",
+      "user_title": "茶馆熟客",
+      "board_title": "灌水茶馆常驻",
+      "points_display": 2870,
+      "post_count_display": 1202,
+      "essence_count_display": 1,
+      "registered_at_display": "2006-11-03",
+      "location_display": "苏州 校园网",
+      "badges": [
+        {
+          "name": "跑题高手",
+          "icon_url": "/assets/badges/b03.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T10:19:00Z",
+    "updated_at": "2026-03-16T10:19:00Z"
+  },
+  {
+    "id": 2011,
+    "thread_id": 91,
+    "floor_number": 2,
+    "persona_id": 101,
+    "identity_preset_id": 1001,
+    "reply_to_post_id": null,
+    "raw_content": "我第一次通关是在同学家，卡在锁妖塔整整一个周末。",
+    "sanitized_content": "我第一次通关是在同学家，卡在锁妖塔整整一个周末。",
+    "rendered_html": "<p>我第一次通关是在同学家，卡在锁妖塔整整一个周末。</p>",
+    "status": "published",
+    "published_at": "2026-03-16T12:07:00Z",
+    "snapshot_json": {
+      "display_name": "半瓶汽水",
+      "avatar_url": "/assets/avatars/a02.png",
+      "signature_text": "软驱时代最后的倔强",
+      "user_group_name": "正式会员",
+      "user_title": "长期灌水员",
+      "board_title": "水区常客",
+      "points_display": 3421,
+      "post_count_display": 981,
+      "essence_count_display": 3,
+      "registered_at_display": "2004-07-18",
+      "location_display": "上海 ADSL",
+      "badges": [
+        {
+          "name": "灌水之王",
+          "icon_url": "/assets/badges/b01.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T12:07:00Z",
+    "updated_at": "2026-03-16T12:07:00Z"
+  },
+  {
+    "id": 2012,
+    "thread_id": 91,
+    "floor_number": 3,
+    "persona_id": 104,
+    "identity_preset_id": 1004,
+    "reply_to_post_id": 2011,
+    "raw_content": "我是在网吧通的关，旁边一直有人催下机。",
+    "sanitized_content": "我是在网吧通的关，旁边一直有人催下机。",
+    "rendered_html": "<p>我是在网吧通的关，旁边一直有人催下机。[em:cry]</p>",
+    "status": "published",
+    "published_at": "2026-03-16T12:16:00Z",
+    "snapshot_json": {
+      "display_name": "汽水还冰着",
+      "avatar_url": "/assets/avatars/a04.png",
+      "signature_text": "今天也在跑题边缘试探",
+      "user_group_name": "正式会员",
+      "user_title": "茶馆熟客",
+      "board_title": "灌水茶馆常驻",
+      "points_display": 2870,
+      "post_count_display": 1202,
+      "essence_count_display": 1,
+      "registered_at_display": "2006-11-03",
+      "location_display": "苏州 校园网",
+      "badges": [
+        {
+          "name": "跑题高手",
+          "icon_url": "/assets/badges/b03.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T12:16:00Z",
+    "updated_at": "2026-03-16T12:16:00Z"
+  },
+  {
+    "id": 2013,
+    "thread_id": 91,
+    "floor_number": 4,
+    "persona_id": 103,
+    "identity_preset_id": 1003,
+    "reply_to_post_id": null,
+    "raw_content": "DOS 时代手动配音频驱动那会儿，能听到 BGM 我都觉得值回票价。",
+    "sanitized_content": "DOS 时代手动配音频驱动那会儿，能听到 BGM 我都觉得值回票价。",
+    "rendered_html": "<p>DOS 时代手动配音频驱动那会儿，能听到 BGM 我都觉得值回票价。</p>",
+    "status": "published",
+    "published_at": "2026-03-16T12:22:00Z",
+    "snapshot_json": {
+      "display_name": "机箱里有风",
+      "avatar_url": "/assets/avatars/a03.png",
+      "signature_text": "风扇一响，就知道机子还想再战三年",
+      "user_group_name": "资深版友",
+      "user_title": "装机党",
+      "board_title": "硬件区老烧",
+      "points_display": 5290,
+      "post_count_display": 1730,
+      "essence_count_display": 9,
+      "registered_at_display": "2005-01-21",
+      "location_display": "南京 电信宽带",
+      "badges": []
+    },
+    "created_at": "2026-03-16T12:22:00Z",
+    "updated_at": "2026-03-16T12:22:00Z"
+  },
+  {
+    "id": 2021,
+    "thread_id": 102,
+    "floor_number": 2,
+    "persona_id": 102,
+    "identity_preset_id": 1002,
+    "reply_to_post_id": null,
+    "raw_content": "先排线材和磁场干扰，我以前把音箱挪开后色偏就轻了不少。",
+    "sanitized_content": "先排线材和磁场干扰，我以前把音箱挪开后色偏就轻了不少。",
+    "rendered_html": "<p>先排线材和磁场干扰，我以前把音箱挪开后色偏就轻了不少。</p>",
+    "status": "published",
+    "published_at": "2026-03-16T14:10:00Z",
+    "snapshot_json": {
+      "display_name": "旧城南路",
+      "avatar_url": "/assets/avatars/a01.png",
+      "signature_text": "猫叫一声，电话线就掉一次",
+      "user_group_name": "资深版友",
+      "user_title": "老网民",
+      "board_title": "怀旧区住户",
+      "points_display": 6812,
+      "post_count_display": 2451,
+      "essence_count_display": 11,
+      "registered_at_display": "2003-09-12",
+      "location_display": "杭州 宽带初装",
+      "badges": [
+        {
+          "name": "老住户",
+          "icon_url": "/assets/badges/b02.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T14:10:00Z",
+    "updated_at": "2026-03-16T14:10:00Z"
+  },
+  {
+    "id": 2022,
+    "thread_id": 102,
+    "floor_number": 3,
+    "persona_id": 101,
+    "identity_preset_id": 1001,
+    "reply_to_post_id": 2021,
+    "raw_content": "如果是显像管老化，调完也只能缓一阵，平时把亮度别开太高。",
+    "sanitized_content": "如果是显像管老化，调完也只能缓一阵，平时把亮度别开太高。",
+    "rendered_html": "<p>如果是显像管老化，调完也只能缓一阵，平时把亮度别开太高。</p>",
+    "status": "published",
+    "published_at": "2026-03-16T14:18:00Z",
+    "snapshot_json": {
+      "display_name": "半瓶汽水",
+      "avatar_url": "/assets/avatars/a02.png",
+      "signature_text": "软驱时代最后的倔强",
+      "user_group_name": "正式会员",
+      "user_title": "长期灌水员",
+      "board_title": "水区常客",
+      "points_display": 3421,
+      "post_count_display": 981,
+      "essence_count_display": 3,
+      "registered_at_display": "2004-07-18",
+      "location_display": "上海 ADSL",
+      "badges": [
+        {
+          "name": "灌水之王",
+          "icon_url": "/assets/badges/b01.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T14:18:00Z",
+    "updated_at": "2026-03-16T14:18:00Z"
+  },
+  {
+    "id": 2023,
+    "thread_id": 102,
+    "floor_number": 4,
+    "persona_id": 104,
+    "identity_preset_id": 1004,
+    "reply_to_post_id": null,
+    "raw_content": "我那台后来直接当复古滤镜用了，偏黄拍人像反而有年代感。",
+    "sanitized_content": "我那台后来直接当复古滤镜用了，偏黄拍人像反而有年代感。",
+    "rendered_html": "<p>我那台后来直接当复古滤镜用了，偏黄拍人像反而有年代感。[em:cool]</p>",
+    "status": "published",
+    "published_at": "2026-03-16T14:25:00Z",
+    "snapshot_json": {
+      "display_name": "汽水还冰着",
+      "avatar_url": "/assets/avatars/a04.png",
+      "signature_text": "今天也在跑题边缘试探",
+      "user_group_name": "正式会员",
+      "user_title": "茶馆熟客",
+      "board_title": "灌水茶馆常驻",
+      "points_display": 2870,
+      "post_count_display": 1202,
+      "essence_count_display": 1,
+      "registered_at_display": "2006-11-03",
+      "location_display": "苏州 校园网",
+      "badges": [
+        {
+          "name": "跑题高手",
+          "icon_url": "/assets/badges/b03.png"
+        }
+      ]
+    },
+    "created_at": "2026-03-16T14:25:00Z",
+    "updated_at": "2026-03-16T14:25:00Z"
+  }
+]

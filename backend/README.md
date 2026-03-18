@@ -25,6 +25,30 @@
 - `migrations/`：数据库迁移
 - `seed/`：种子数据
 
+## 本地开发默认配置
+
+- 默认端口：`3005`（定义在 `src/app/config.js`）
+- 可通过 `.env` 覆盖：`PORT=xxxx`
+- 示例环境变量见 `backend/.env.example`
+
+## 初始化命令
+
+在 `backend/` 目录执行：
+
+- `pnpm install`
+- `pnpm run db:init`
+- `pnpm run seed`
+
+默认会写入 `backend/data/llm_bbs.db`。
+
+## 联调用示例种子数据
+
+`backend/seed/threads.json` 与 `backend/seed/posts.json` 提供了可直接渲染楼层结构的演示数据，便于前后端联调时验证：
+
+- 帖子列表/详情页布局
+- 楼层分页与楼层号
+- 作者快照与签名档展示
+
 ## 开发前必读
 
 - [`../docs/data-model-and-assets.md`](../docs/data-model-and-assets.md)

@@ -4,8 +4,18 @@
   "private": true,
   "description": "Backend skeleton for a read-only LLM-generated retro BBS project.",
   "scripts": {
+    "db:init": "node src/cli/index.js db:init",
+    "seed": "node src/cli/index.js seed",
     "dev": "echo \"Define backend dev command after choosing runtime/tooling\"",
     "build": "echo \"Define backend build command\"",
     "test": "echo \"Add backend tests\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }
