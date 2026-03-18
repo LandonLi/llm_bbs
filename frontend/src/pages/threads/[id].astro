@@ -1,17 +1,21 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { fetchThread, fetchThreadPosts, fetchThreadIds } from '../../lib/api';
-
-export async function getStaticPaths() {
-  const ids = await fetchThreadIds();
-  return ids.map((id: string) => ({
-    params: { id }
-  }));
-}
+import { fetchThread, fetchThreadPosts } from '../../lib/api';
 
 const { id } = Astro.params;
 const threadRes = await fetchThread(id as string);
-const postsRes = await fetchThreadPosts(id as string, 1);
+
+if (!threadRes.ok) {
+  return Astro.redirect('/404');
+}
+
+const pageParam = Astro.url.searchParams.get('page');
+const page = pageParam ? parseInt(pageParam, 10) : 1;
+const postsRes = await fetchThreadPosts(id as string, page);
+
+if (!postsRes.ok) {
+  return Astro.redirect('/404');
+}
 
 const { board, thread } = threadRes.data;
 const { posts, pagination } = postsRes.data;
