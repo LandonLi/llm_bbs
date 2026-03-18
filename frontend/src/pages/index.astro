@@ -34,22 +34,22 @@ const { site, stats, boards } = response.data;
     <table class="retro-table">
       <thead>
         <tr>
-          <th width="50%">版块</th>
-          <th width="10%" style="text-align: center;">主题</th>
-          <th width="10%" style="text-align: center;">帖数</th>
-          <th width="30%">最后发表</th>
+          <th style="width: 50%;">版块</th>
+          <th class="text-center" style="width: 10%;">主题</th>
+          <th class="text-center" style="width: 10%;">帖数</th>
+          <th style="width: 30%;">最后发表</th>
         </tr>
       </thead>
       <tbody>
         {boards && boards.length > 0 ? boards.map((board: any) => (
           <tr>
             <td>
-              <a href={`/boards/${board.slug}`} style="font-weight: bold; font-size: 14px;">{board.name}</a>
-              <div style="font-size: 12px; color: #666; margin-top: 4px;">{board.description}</div>
+              <a href={`/boards/${board.slug}`} class="font-bold" style="font-size: 14px;">{board.name}</a>
+              <div class="text-muted" style="margin-top: 4px;">{board.description}</div>
             </td>
-            <td style="text-align: center;">{board.thread_count_display}</td>
-            <td style="text-align: center;">{board.post_count_display}</td>
-            <td style="font-size: 12px;">
+            <td class="text-center">{board.thread_count_display}</td>
+            <td class="text-center">{board.post_count_display}</td>
+            <td class="text-small">
               {board.latest_thread ? (
                 <>
                   <a href={`/threads/${board.latest_thread.id}`}>{board.latest_thread.title}</a><br/>
@@ -62,7 +62,7 @@ const { site, stats, boards } = response.data;
           </tr>
         )) : (
           <tr>
-            <td colspan="4" style="text-align: center; padding: 20px; color: #666;">论坛正在整理版面</td>
+            <td colspan="4" class="empty-state">论坛正在整理版面</td>
           </tr>
         )}
       </tbody>

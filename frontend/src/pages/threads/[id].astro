@@ -1,19 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { fetchThread, fetchThreadPosts } from '../../lib/api';
+import { fetchThread, fetchThreadPosts, fetchThreadIds } from '../../lib/api';
 
-import fs from 'node:fs';
-import path from 'node:path';
-
-export function getStaticPaths() {
-  const MOCK_API_DIR = path.resolve('..', 'docs', 'mock-api');
-  const files = fs.readdirSync(MOCK_API_DIR);
-  
-  const ids = files
-    .filter(file => file.startsWith('thread-') && !file.includes('-posts-'))
-    .map(file => file.replace('thread-', '').replace('.json', ''));
-
-  return ids.map(id => ({
+export async function getStaticPaths() {
+  const ids = await fetchThreadIds();
+  return ids.map((id: string) => ({
     params: { id }
   }));
 }
@@ -44,7 +35,9 @@ const allPosts = [mainPost, ...posts];
   </div>
 
   <div class="pagination" style="margin-top: 0;">
-    <span class="current">1</span>
+    {pagination.page > 1 ? <a href={`?page=${pagination.page - 1}`}>&lt; 上一页</a> : <span class="disabled">&lt; 上一页</span>}
+    <span class="current">{pagination.page}</span>
+    {pagination.page < pagination.totalPages ? <a href={`?page=${pagination.page + 1}`}>下一页 &gt;</a> : <span class="disabled">下一页 &gt;</span>}
     <span>共 {pagination.totalPages} 页</span>
   </div>
 
@@ -57,13 +50,13 @@ const allPosts = [mainPost, ...posts];
       <div class="post-row">
         <!-- 左侧：用户侧栏 -->
         <div class="post-sidebar">
-          <div style="font-weight: bold; margin-bottom: 10px; font-size: 14px; color: var(--link-color);">
+          <div class="font-bold" style="margin-bottom: 10px; font-size: 14px; color: var(--link-color);">
             {post.author_snapshot.display_name}
           </div>
           <div class="avatar-wrap">
-            <img class="avatar" src={post.author_snapshot.avatar_url} alt="头像" onerror="this.src='data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=='" />
+            <img class="avatar" src={post.author_snapshot.avatar_url} alt="头像" onerror="this.removeAttribute('src'); this.setAttribute('class', 'avatar missing-avatar');" />
           </div>
-          <div style="font-weight: bold; color: #cc0000; margin-bottom: 5px;">
+          <div class="font-bold" style="color: #cc0000; margin-bottom: 5px;">
             {post.author_snapshot.user_group_name}
           </div>
           
@@ -95,7 +88,7 @@ const allPosts = [mainPost, ...posts];
             <div>
               <span>发表于 {new Date(post.published_at).toLocaleString()}</span>
             </div>
-            <div style="font-weight: bold;">
+            <div class="font-bold">
               {post.floor_number === 1 ? '楼主' : `${post.floor_number} 楼`}
             </div>
           </div>
@@ -112,10 +105,18 @@ const allPosts = [mainPost, ...posts];
         </div>
       </div>
     ))}
+
+    {posts.length === 0 && (
+      <div class="empty-state">
+        暂时还没有人跟帖
+      </div>
+    )}
   </div>
 
   <div class="pagination">
-    <span class="current">1</span>
+    {pagination.page > 1 ? <a href={`?page=${pagination.page - 1}`}>&lt; 上一页</a> : <span class="disabled">&lt; 上一页</span>}
+    <span class="current">{pagination.page}</span>
+    {pagination.page < pagination.totalPages ? <a href={`?page=${pagination.page + 1}`}>下一页 &gt;</a> : <span class="disabled">下一页 &gt;</span>}
     <span>共 {pagination.totalPages} 页</span>
   </div>
 

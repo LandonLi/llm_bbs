@@ -9,6 +9,9 @@
     "strict": true,
     "skipLibCheck": true,
     "baseUrl": ".",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
     "paths": {
       "@/*": ["src/*"]
     }
