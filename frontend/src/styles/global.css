@@ -140,6 +140,10 @@ a:hover {
   font-weight: bold;
 }
 
+.pagination .disabled {
+  color: #999;
+}
+
 /* 面包屑导航 */
 .breadcrumb {
   margin-bottom: 10px;
@@ -196,6 +200,10 @@ a:hover {
   padding: 2px;
   background: #fff;
   display: block;
+}
+
+.missing-avatar {
+  display: none !important;
 }
 
 .user-info-list {
@@ -308,4 +316,34 @@ a:hover {
     border-bottom: none;
     margin-right: 10px;
   }
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #666;
+  font-size: 12px;
+}
+
+.text-small {
+  font-size: 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.pinned-indicator {
+  text-align: center;
+  color: #d00;
+  font-weight: bold;
 }
